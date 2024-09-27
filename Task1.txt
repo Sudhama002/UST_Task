@@ -1,0 +1,96 @@
+1) Find all employees whose first names start with a vowel and whose last names end with a consonant
+
+SELECT first_name, last_name
+FROM employees
+WHERE 
+LEFT(first_name, 1) IN ('A', 'E', 'I', 'O', 'U')
+AND 
+RIGHT(last_name, 1) NOT IN ('A', 'E', 'I', 'O', 'U');
+
+2) For each department, display the total salary expenditure, the average salary, and the highest salary using window functions.
+
+SELECT e.department_id, 
+       d.department_name,
+       SUM(s.salary) OVER (PARTITION BY e.department_id) AS total_salary,
+       AVG(s.salary) OVER (PARTITION BY e.department_id) AS average_salary,
+       MAX(s.salary) OVER (PARTITION BY e.department_id) AS max_salary
+FROM employees e
+JOIN salaries s ON e.employee_id = s.employee_id
+JOIN departments d ON e.department_id = d.department_id;
+
+3) Fetch all employees, their department name, their manager’s name (if they have one), and their salary.
+
+SELECT employees.employee_id,
+employees.first_name AS employee_first_name,
+employees.last_name AS employee_last_name,
+departments.department_name,
+managers.first_name AS manager_first_name,salaries.salary
+FROM employees
+JOIN departments ON employees.department_id   =   departments.department_id
+LEFT JOIN employees AS managers ON employees.manager_id   =   managers.employee_id
+JOIN salaries  ON  employees.employee_id   =   salaries.employee_id;
+
+4) Use a recursive CTE to list all employees and their respective reporting chains.
+
+WITH RECURSIVE employee_hierarchy AS (
+    SELECT e.employee_id,
+           e.first_name || ' ' || e.last_name AS employee_name,
+           e.manager_id,
+           0 AS level
+    FROM employees e
+    WHERE e.manager_id IS NULL  -- Start with top-level managers
+
+    UNION ALL
+
+    SELECT e.employee_id,
+           e.first_name || ' ' || e.last_name AS employee_name,
+           e.manager_id,
+           eh.level + 1
+    FROM employees e
+    INNER JOIN employee_hierarchy eh ON e.manager_id = eh.employee_id
+)
+SELECT * FROM employee_hierarchy ORDER BY level, employee_id;
+
+5) Fetch details of employees earning above a certain salary threshold and analyze performance.
+
+SELECT e.employee_id, e.first_name, e.last_name, s.salary
+FROM employees e
+JOIN salaries s ON e.employee_id = s.employee_id
+WHERE s.salary > <salary_threshold>;
+
+CREATE INDEX idx_salary ON salaries(salary);
+CREATE INDEX idx_employee_id ON employees(employee_id);
+
+EXPLAIN ANALYZE
+SELECT e.employee_id, e.first_name, e.last_name, s.salary
+FROM employees e
+JOIN salaries s ON e.employee_id = s.employee_id
+WHERE s.salary > <salary_threshold>;
+
+6) Create a detailed sales report using a temporary table.
+
+CREATE TEMPORARY TABLE sales_report AS
+SELECT product_id,
+       SUM(sale_amount) AS total_sales,
+       AVG(sale_amount) AS average_sales_per_customer,
+       employee_id AS top_salesperson
+FROM sales
+GROUP BY product_id, employee_id;
+
+INSERT INTO sales_report
+SELECT product_id,
+       total_sales,
+       average_sales_per_customer,
+       employee_id
+FROM (
+    SELECT product_id,
+           SUM(sale_amount) AS total_sales,
+           AVG(sale_amount) AS average_sales_per_customer,
+           employee_id,
+           RANK() OVER (PARTITION BY product_id ORDER BY SUM(sale_amount) DESC) AS rank
+    FROM sales
+    GROUP BY product_id, employee_id
+) ranked_sales
+WHERE rank = 1;
+
+SELECT * FROM sales_report;
