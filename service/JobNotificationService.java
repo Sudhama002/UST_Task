@@ -25,4 +25,23 @@ public class JobNotificationService {
     public Optional<JobNotification> getJobById(Long jobId) {
         return jobRepository.findById(jobId);
     }
-}
+    public JobNotification getJobById(long id){
+        return jobRepository.findById(id).orElse(null);
+    }
+    public String deleteJob(long id) {
+        jobRepository.deleteById(id);
+        return "Job deleted";
+    }
+    public JobNotification updateJob(long id,JobNotification jobNotification) {
+        JobNotification oldinfo=jobRepository.findById(id).orElse(null);
+        if(oldinfo!=null) {
+            oldinfo.setJobTitle(jobNotification.getJobTitle());
+            oldinfo.setDescription(jobNotification.getDescription());
+            oldinfo.setLocation(jobNotification.getLocation());
+            oldinfo.setSalary(jobNotification.getSalary());
+            return jobRepository.save(oldinfo);
+        }
+        return jobNotification;
+        }
+    }
+

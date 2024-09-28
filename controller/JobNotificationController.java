@@ -36,4 +36,12 @@ public class JobNotificationController {
             return ResponseEntity.notFound().build();
         }
     }
+    @PutMapping("/updatejob/{id}")
+    public JobNotification updateJob(@PathVariable int id, @RequestBody JobNotification jobNotification) {
+        return jobNotificationService.updateJob(id,jobNotification);
+    }
+    @DeleteMapping("/deletejob/{id}")
+    public String deleteJob(@PathVariable int id) {
+        return jobNotificationService.deleteJob(id);
+    }
 }
